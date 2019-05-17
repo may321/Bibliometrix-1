@@ -1,2 +1,2 @@
-# Bibliometrix-1
-Projeto R
+# Bibliometrix
+Análise Bibliométrica no R

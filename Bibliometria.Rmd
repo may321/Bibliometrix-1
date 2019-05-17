@@ -1,0 +1,369 @@
+---
+title: 'Estado Viável mas não Cultivável: Bibliometria'
+author: "Mayara Messias Oliveira"
+date: "14/05/2019"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Intodução
+
+De acordo com os fundadores Aria e Cuccurullo (2017), o pacote bibliometrix fornece um conjunto de ferramentas para pesquisa quantitativa em bibliometria e cienciometria. Essencialmente, a bibliometria é a aplicação de análises quantitativas e estatísticas a publicações como artigos de periódicos e suas respectivas contagens de citações. Estas análises são usadas para avaliar o crescimento, maturidade, autores líderes, mapas conceituais e intelectuais, tendências de uma comunidade científica.
+O objetivo do presente trabalho foi analisar o resultado de uma busca bibliográfica, pela base de dados SCOPUS, referente ao meu tema de trabalho de doutorado "células no estado viável mas não cultivável (VBNC)".
+
+
+## Passos utilizados para análise bibliométrica
+
+1. Instalação do pacote Bibliometrix.
+
+A Instalação foi feita pela ferramenta "Tools" --> "Install Packages" --> digite: "Bibliometrix" e clique em "Install"
+
+2. Aquisição de dados bibliográficos pelo SCOPUS. 
+
+O termo utilizado para busca dos artigos foi "VBNC".O resultado da busca foi baixado utilizando-se as ferramentamentas ‘Select All’ e ‘Export’.O arquivo foi exportado no formato “BibTeX” e foram selecionadas “todas as informações disponíveis”. 
+
+3. Carregar o pacote Bibliometrix.
+
+```{r  load bibliometrix package, echo=TRUE}
+library(bibliometrix) 
+```
+
+4. Exportar os dados adiquiridos.
+
+O arquivo a ser exportado é lido com a função readFiles.
+Para dar sequencia as análises bibliométricas dos dados todas as funções devem ser guardadas dentro de um objeto do tipo vetor. 
+Neste caso, a função readFiles foi guardada dentro do vetor D. 
+
+```{r export file, echo=TRUE}
+D <- readFiles("C:/Users/Thata/Documents/Bibliometrix/scopus.bib")
+```
+
+5. Coverter os dados em um data frame. 
+
+```{r converting in a data frame, echo=TRUE}
+M <- convert2df(D, dbsource = "scopus", format = "bibtex")
+```
+
+6.Análise descritiva dos dados bibliográficos. 
+
+A função biblioAnalysis calcula as principais medidas bibliométricas.
+
+```{r  main bibliometric measures , echo=TRUE}
+results <- biblioAnalysis(M, sep = ";")
+```
+
+7. Resumo dos principais resultados da análise bibliométrica.
+```{r summary, echo=TRUE}
+options(width=100)
+S <- summary(object = results, k = 20, pause = FALSE)
+```
+
+8. Construção de gráficos das principais informações.
+
+```{r basic plots, echo=TRUE}
+plot(x = results, k = 20, pause = FALSE)
+```
+
+9. Análise das referências citadas.
+A função 'citations' gera a tabela de frequência dos artigos mais citados ou os primeiros autores mais citados.
+
+```{r}
+CR <- citations(M, field = "article", sep = ";")
+cbind(CR$Cited[1:20])
+```
+
+Para verificar como os arquivos estão separados, pode-se utilizar: 
+
+```{r separator field, echo=TRUE}
+M$CR[1]
+```
+
+Para obter os primeiros autores citados mais frequentes:
+
+```{r first authors, echo=TRUE}
+CR <- citations(M, field = "author", sep = ";")
+cbind(CR$Cited[1:20])
+```
+
+10. Ranking de dominância dos autores. 
+
+O fator de dominância é uma razão que indica a fração de artigos com vários autores em que um pesquisador aparece como primeiro autor.
+
+```{r Authors’ Dominance , echo=TRUE}
+DF <- dominance(results, k = 20)
+DF
+```
+
+11.H-Index dos autores
+
+O índice h é uma métrica no nível do autor que tenta medir o impacto da produtividade e da citação das publicações de um pesquisador.
+
+O índice baseia-se no conjunto de artigos mais citados pelos cientistas e no número de citações que receberam em outras publicações.
+
+A função Hindex calcula o índice H dos autores ou o índice H das fontes e suas variantes (índice-g e índice-m) em uma coleção bibliográfica.
+
+Os argumentos da função são: M um quadro de dados bibliográficos; field é o elemento de caractere que define a unidade de análise em termos de autores (campo = "auhtor") ou fontes (campo = "fonte"); elementos um vetor de caractere contendo os nomes dos autores (ou os nomes das fontes) para os quais você deseja calcular o índice-H. O argumento tem a forma c (“SURNAME1 N”, “SURNAME2 N”,…).
+
+```{r impact indices, echo=TRUE}
+indices <- Hindex(M, field = "author", elements="OLIVER JD", sep = ";", years = 10)
+indices$H
+
+```
+
+Lista de citações
+
+```{r}
+indices$CitationList
+```
+
+
+H-Index dos 20 autores mais produtivos
+
+```{r most productive authors, echo=TRUE}
+authors=gsub(","," ",names(results$Authors)[1:20])
+
+indices <- Hindex(M, field = "author", elements=authors, sep = ";", years = 50)
+
+indices$H
+```
+
+12.Produtividade dos principais autores ao longo do tempo
+
+A função AuthorProdOverTime calcula e plota a produção dos autores (em termos de número de publicações e total de citações por ano) ao longo do tempo.
+
+Os argumentos da função são: M um quadro de dados bibliográficos; k é o número de k Top Autores; gráfico é uma lógica. Se graph = TRUE, a função plota o gráfico de produção do autor ao longo do tempo.
+
+```{r  authors production, echo=TRUE}
+topAU <- authorProdOverTime(M, k = 10, graph = TRUE)
+```
+
+Tabela: Produtividade do autor por ano
+```{r table, echo=TRUE}
+head(topAU$dfAU)
+```
+
+Tabela: Lista de documento dos autores
+
+```{r echo=TRUE}
+head(topAU$dfPapersAU)
+```
+
+13. Matrizes de rede bibliográfica
+
+Redes Bipartidas
+
+cocMatrix é uma função geral para calcular uma rede bipartida selecionando um dos atributos de metadados.
+
+Por exemplo, para criar uma rede de Manuscrito x Fonte de publicação, é preciso usar a tag de campo "SO".
+
+```{r Bipartite networks, echo=TRUE}
+A <- cocMatrix(M, Field = "SO", sep = ";")
+```
+
+Classificando, em ordem decrescente, as somas da coluna de A, é possível ver as fontes de publicação mais relevantes.  
+
+```{r}
+sort(Matrix::colSums(A), decreasing = TRUE)[1:10]
+```
+
+O mesmo pode ser usado para calcular várias redes bipartidas:
+
+Rede de Citação
+```{r echo=TRUE}
+A <- cocMatrix(M, Field = "CR", sep = ".")
+```
+
+Rede de autores
+```{r echo=TRUE}
+A <- cocMatrix(M, Field = "AU", sep = ";")
+```
+
+Rede de países
+```{r echo=TRUE}
+M <- metaTagExtraction(M, Field = "AU_CO", sep = ";")
+A <- cocMatrix(M, Field = "AU_CO", sep = ";")
+```
+
+Rede de palavras-chave de autor
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "references", sep = ".  ")
+```
+
+Rede de palavra-chave
+```{r echo=TRUE}
+A <- cocMatrix(M, Field = "ID", sep = ";")
+```
+
+Acoplamento bibliográfico
+
+```{r}
+
+NetMatrix <- biblioNetwork(M, analysis = "coupling", network = "authors", sep = ";")
+
+net=networkPlot(NetMatrix,  normalize = "salton", weighted=NULL, n = 100, Title = "Authors' Coupling", type = "fruchterman", size=5,size.cex=T,remove.multiple=TRUE,labelsize=0.8,label.n=10,label.cex=F)
+```
+
+Co-citação bibliográfica
+
+A função biblioNetwork também pode ser usada para calcular a rede de colaboração de um autor ou uma rede de colaboração do país, como é mostrado abaixo:
+
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "co-citation", network = "references", sep = ".  ")
+```
+
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "collaboration", network = "countries", sep = ";")
+```
+
+
+14. Análise descritiva das características do gráfico de rede
+
+A função networkStat calcula várias estatísticas de resumo.
+
+Partindo de uma matriz bibliográfica (ou um objeto igraph), são computados grupos de medidas descritivas.
+
+Rede clássica de co-ocorrências de palavras-chave:
+
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "co-occurrences", network = "keywords", sep = ";")
+netstat <- networkStat(NetMatrix)
+```
+
+```{r}
+names(netstat$network)
+```
+
+Principais índices de centralidade e prestígio dos vértices
+
+Essas medidas ajudam a identificar os vértices mais importantes em uma rede e a propensão de dois vértices que estão conectados para estar ambos conectados a um terceiro vértice.
+
+```{r echo=TRUE}
+names(netstat$vertex)
+```
+
+Para resumir os principais resultados da função networkStat, use o resumo da função genérica. Ele exibe as principais informações sobre a rede e a descrição do vértice através de várias tabelas.
+
+k é um valor de formatação que indica o número de linhas de cada tabela. 
+
+```{r echo=TRUE}
+summary(netstat, k=10)
+```
+
+15. Visualizando redes bibliográficas
+
+Com a função networkPlot é possível plotar uma rede criada pela biblioNetwork usando rotinas R ou usando o VOSviewer.
+
+O argumento principal do networkPlot é type. Indica o layout do mapa de rede: circle, kamada-kawai, mds, etc. 
+
+
+Colaboração Científica no País
+
+Crie uma rede de colaboração no país:
+```{r echo=TRUE}
+M <- metaTagExtraction(M, Field = "AU_CO", sep = ";")
+NetMatrix <- biblioNetwork(M, analysis = "collaboration", network = "countries", sep = ";")
+
+```
+
+Gráfico da rede de colaboração: 
+```{r echo=TRUE}
+net=networkPlot(NetMatrix, n = dim(NetMatrix)[1], Title = "Country Collaboration", type = "circle", size=TRUE, remove.multiple=FALSE,labelsize=0.7,cluster="none")
+```
+
+Rede de co-citação
+
+Crie uma rede de co-citação:
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "co-citation", network = "references", sep = ";")
+```
+
+Gráfico da rede de co-citação:
+```{r echo=TRUE}
+net=networkPlot(NetMatrix, n = 30, Title = "Co-Citation Network", type = "fruchterman", size=T, remove.multiple=FALSE, labelsize=0.7,edgesize = 5)
+```
+
+Co-ocorrências de palavras-chave
+
+Rede de co-ocorrências de palavras-chave:
+```{r echo=TRUE}
+NetMatrix <- biblioNetwork(M, analysis = "co-occurrences", network = "keywords", sep = ";")
+```
+
+Gráfico da rede de co-ocorrências de palavras-chave:
+```{r echo=TRUE}
+net=networkPlot(NetMatrix, normalize="association", weighted=T, n = 30, Title = "Keyword Co-occurrences", type = "fruchterman", size=T,edgesize = 5,labelsize=0.7)
+```
+
+16. Análise Co-Word
+
+O objetivo da análise conjunta é mapear a estrutura conceitual de um framework usando a palavra co-ocorrências em uma coleção bibliográfica.
+
+A análise pode ser realizada por meio de técnicas de redução de dimensionalidade, como Escala Multidimensional (MDS), Análise de Correspondência (AC) ou Análise de Correspondência Múltipla (ACM).
+
+A função conceptualStructure executa uma CA ou MCA para desenhar uma estrutura conceitual do campo e o K-means agrupa para identificar clusters de documentos que expressam conceitos comuns. Os resultados são plotados em um mapa bidimensional.
+
+Estrutura conceitual usando palavras-chave (método = "CA"):
+```{r echo=TRUE}
+CS <- conceptualStructure(M,field="ID", method="CA", minDegree=4, k.max=4, stemming=FALSE, labelsize=10, documents=5)
+```
+
+17. Rede Histórica de Citação Direta
+
+Apresenta um mapa de rede cronológica das citações diretas mais relevantes resultantes de uma coleção bibliográfica.
+
+A função que gera a matriz desta rede é:
+```{r echo=TRUE}
+options(width=130)
+histResults <- histNetwork(M, min.citations = 10, sep = ";")
+```
+
+Gráfico da rede de co-citação histórica:
+```{r}
+net <- histPlot(histResults, n=15, size = 20, labelsize=10, size.cex=TRUE, arrowsize = 0.5, color = TRUE)
+```
+
+## Dificuldades Encontradas e Respostas alcançadas 
+
+### Instalação do pacote Bibliometrix 
+
+Inicialmente  pacote Bibliometrix foi instalado da seguinte forma: 
+
+install.packages("bibliometrix", dependencies=TRUE, 
+                 repos = "http://cran.us.r-project.org")
+
+No entanto, o mesmo apresentava erros ao carregar. 
+
+A solução foi desinstalar o pacote, e instalar novamente segundo orientações descritas no item 1 deste documento. 
+
+### Arquivo no formato PDF
+
+A maior dificuldade encontrada ao longo do desenvolvimento deste projeto foi com relação a geração do PDF do arquivo de trabalho no formato Rmd. No entanto, apesar de várias buscas em foruns na tentativa de solicionar o problema, só consegui solucionar o mesmo trabalhando em um computador diferente. 
+
+### Obtenção de dados
+
+Ao converter o resultado da busca da pltaforma SCOPUS para o formato bibtex pela primeira vez, não selecionei todos os campos para exportar o arquivo. O mesmo apresentava erros no momento de excultar as funções para as análises. A solução foi exportar novamente o arquivo, desta vez com todos os campos selecionados (ex., Authors, title, source, etc.).
+
+### Gráficos Co-Word
+
+Os gráficos gerados de Co-word, item 16 deste arquivo, "Conceptual struture map" pelo método CA e o dendograma ficaram difíceis de serem análisados devido a grande quantidade de informações contidas. Acredito que a solução para evitar gráficos carregados de informações, principalmente quando se refere aos gráficos de redes, seria refinar as buscas nos bancos de dados bibliográficos utilizando palavras chaves mais específicas refente ao tema. 
+
+### Formatação
+
+Quando é gerado o pdf do aquivo no formato Rmd o mesmo apresenta problemas na formatação, pois os resultados de saída ultrapassam a margem do documento. Acredito que uma solução seria gerar o aquivo com as páginas configuradas em paisagem, por exemplo. Mas não consegui solucionar este problema. 
+
+## Referências bibliográficas
+
+```{r include=FALSE}
+citation("bibliometrix")
+```
+ Aria, M. & Cuccurullo, C. (2017) bibliometrix: An R-tool for
+  comprehensive science mapping analysis, Journal of Informetrics,
+  11(4), pp 959-975, Elsevier.
+
+Aria, M. & Cuccurullo, C. (2017). A brief introduction to bibliometrix. Disponível em: <https://cran.r-project.org/web/packages/bibliometrix/vignettes/bibliometrix-vignette.html>. Acesso em: maio, 2019. 
